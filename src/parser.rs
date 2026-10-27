@@ -77,11 +77,11 @@ struct FileMeta<'a> {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 enum BackRef {
     #[serde(alias = "in")]
-    In(u32),
+    In(u64),
     #[serde(alias = "il")]
-    Il(u32),
+    Il(u64),
     #[serde(alias = "ie")]
-    Ie(u32),
+    Ie(u64),
 }
 
 impl BackRef {
@@ -89,7 +89,7 @@ impl BackRef {
         if !inserted {
             panic!("Attempted to insert duplicate Name");
         }
-        let lhs = u32::try_from(idx).unwrap();
+        let lhs = u64::try_from(idx).unwrap();
         if self != BackRef::In(lhs) {
             eprintln!(
                 "Declined: Name back-reference mismatch, expected {:?}, found {:?}. Back-refs must be continuous.",
@@ -104,7 +104,7 @@ impl BackRef {
         if !inserted {
             panic!("Attempted to insert duplicate Level");
         }
-        let lhs = u32::try_from(idx).unwrap();
+        let lhs = u64::try_from(idx).unwrap();
         if self != BackRef::Il(lhs) {
             eprintln!(
                 "Declined: Level back-reference mismatch, expected {:?}, found {:?}. Back-refs must be continuous.",
@@ -119,7 +119,7 @@ impl BackRef {
         if !inserted {
             panic!("Attempted to insert duplicate Expr");
         }
-        let lhs = u32::try_from(idx).unwrap();
+        let lhs = u64::try_from(idx).unwrap();
         if self != BackRef::Ie(lhs) {
             eprintln!(
                 "Declined: Expr back-reference mismatch, expected {:?}, found {:?}. Back-refs must be continuous.",
@@ -163,20 +163,20 @@ enum QuotKind {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 struct RecursorRule {
-    ctor: u32,
+    ctor: u64,
     nfields: u16,
-    rhs: u32,
+    rhs: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 struct IndInfo {
-    name: u32,
+    name: u64,
     #[serde(rename = "levelParams")]
-    uparams: Vec<u32>,
+    uparams: Vec<u64>,
     #[serde(rename = "type")]
-    ty: u32,
-    all: Vec<u32>,
-    ctors: Vec<u32>,
+    ty: u64,
+    all: Vec<u64>,
+    ctors: Vec<u64>,
     #[serde(rename = "isRec")]
     is_rec: bool,
     #[serde(rename = "isReflexive")]
@@ -193,11 +193,11 @@ struct IndInfo {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 struct Constructor {
-    name: u32,
+    name: u64,
     #[serde(rename = "levelParams")]
-    uparams: Vec<u32>,
+    uparams: Vec<u64>,
     #[serde(rename = "type")]
-    ty: u32,
+    ty: u64,
     #[serde(rename = "isUnsafe")]
     is_unsafe: bool,
     cidx: u16,
@@ -205,16 +205,16 @@ struct Constructor {
     num_params: u16,
     #[serde(rename = "numFields")]
     num_fields: u16,
-    induct: u32
+    induct: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 struct Recursor {
-    name: u32,
+    name: u64,
     #[serde(rename = "levelParams")]
-    uparams: Vec<u32>,
+    uparams: Vec<u64>,
     #[serde(rename = "type")]
-    ty: u32,
+    ty: u64,
     #[serde(rename = "isUnsafe")]
     is_unsafe: bool,
     #[serde(rename = "numParams")]
@@ -226,7 +226,7 @@ struct Recursor {
     #[serde(rename = "numMinors")]
     num_minors: u16,
     rules: Vec<RecursorRule>,
-    all: Vec<u32>,
+    all: Vec<u64>,
     k: bool,
 }
 
@@ -237,60 +237,51 @@ enum ExportJsonVal<'a> {
     #[serde(rename = "meta")]
     Metadata(FileMeta<'a>),
     #[serde(rename = "str")]
-    NameStr {
-        pre: u32,
-        str: Cow<'a, str>
-    },
+    NameStr { pre: u64, str: Cow<'a, str> },
     #[serde(rename = "num")]
-    NameNum {
-        pre: u32,
-        i: u32
-    },
+    NameNum { pre: u64, i: u64 },
     #[serde(rename = "succ")]
-    LevelSucc(u32),
+    LevelSucc(u64),
     #[serde(rename = "max")]
-    LevelMax([u32; 2]),
+    LevelMax([u64; 2]),
     #[serde(rename = "imax")]
-    LevelIMax([u32; 2]),
+    LevelIMax([u64; 2]),
     #[serde(rename = "param")]
-    LevelParam(u32),
+    LevelParam(u64),
     #[serde(rename = "natVal", deserialize_with = "deserialize_biguint_from_string")]
     NatLit(BigUint),
     #[serde(rename = "strVal")]
     StrLit(Cow<'a, str>),
     #[serde(rename = "mdata")]
-    ExprMData {
-        expr: u32,
-        data: serde_json::Value
-    },
+    ExprMData { expr: u64, data: serde_json::Value },
     #[serde(rename = "letE")]
     ExprLet {
-        name: u32,
+        name: u64,
         #[serde(rename = "type")]
-        ty: u32,
-        value: u32,
-        body: u32,
+        ty: u64,
+        value: u64,
+        body: u64,
         nondep: bool
     },
     #[serde(rename = "const")]
     ExprConst {
-        name: u32,
+        name: u64,
         #[serde(rename = "us")]
-        levels: Vec<u32>
+        levels: Vec<u64>,
     },
     #[serde(rename = "app")]
     ExprApp {
         #[serde(rename = "fn")]
-        fun: u32,
-        arg: u32 
+        fun: u64,
+        arg: u64,
     },
     #[serde(rename = "forallE")]
     ExprPi {
         #[serde(rename = "name")]
-        binder_name: u32,
+        binder_name: u64,
         #[serde(rename = "type")]
-        binder_type: u32,
-        body: u32,
+        binder_type: u64,
+        body: u64,
         #[serde(rename = "binderInfo")]
         binder_info: BinderStyle
 
@@ -298,52 +289,52 @@ enum ExportJsonVal<'a> {
     #[serde(rename = "lam")]
     ExprLambda {
         #[serde(rename = "name")]
-        binder_name: u32,
+        binder_name: u64,
         #[serde(rename = "type")]
-        binder_type: u32,
-        body: u32,
+        binder_type: u64,
+        body: u64,
         #[serde(rename = "binderInfo")]
         binder_info: BinderStyle
     },
     #[serde(rename = "proj")]
     ExprProj {
         #[serde(rename = "typeName")]
-        type_name: u32,
+        type_name: u64,
         idx: usize,
         #[serde(rename = "struct")]
-        structure: u32,
+        structure: u64,
     },
     #[serde(rename = "sort")]
-    ExprSort(u32),
+    ExprSort(u64),
     #[serde(rename = "bvar")]
     ExprBVar(u16),
     #[serde(rename = "axiom")]
     Axiom {
-        name: u32,
+        name: u64,
         #[serde(rename = "levelParams")]
-        uparams: Vec<u32>,
+        uparams: Vec<u64>,
         #[serde(rename = "type")]
-        ty: u32,
+        ty: u64,
         #[serde(rename = "isUnsafe")]
         is_unsafe: bool
     },
     #[serde(rename = "thm")]
     Thm {
-        name: u32,
+        name: u64,
         #[serde(rename = "levelParams")]
-        uparams: Vec<u32>,
+        uparams: Vec<u64>,
         #[serde(rename = "type")]
-        ty: u32,
-        value: u32,
+        ty: u64,
+        value: u64,
     },
     #[serde(rename = "def")]
     Defn {
-        name: u32,
+        name: u64,
         #[serde(rename = "levelParams")]
-        uparams: Vec<u32>,
+        uparams: Vec<u64>,
         #[serde(rename = "type")]
-        ty: u32,
-        value: u32,
+        ty: u64,
+        value: u64,
         #[serde(rename = "hints")]
         hint: ReducibilityHint,
         //all: Vec<usize>,
@@ -351,22 +342,22 @@ enum ExportJsonVal<'a> {
     },
     #[serde(rename = "opaque")]
     Opaque {
-        name: u32,
+        name: u64,
         #[serde(rename = "levelParams")]
-        uparams: Vec<u32>,
+        uparams: Vec<u64>,
         #[serde(rename = "type")]
-        ty: u32,
-        value: u32,
+        ty: u64,
+        value: u64,
         #[serde(rename = "isUnsafe")]
         is_unsafe: bool
     },
     #[serde(rename = "quot")]
     Quot {
-        name: u32,
+        name: u64,
         #[serde(rename = "levelParams")]
-        uparams: Vec<u32>,
+        uparams: Vec<u64>,
         #[serde(rename = "type")]
-        ty: u32,
+        ty: u64,
         #[serde(rename = "kind")]
         kind: QuotKind
     },
@@ -477,18 +468,18 @@ impl<'a, R: BufRead> Parser<'a, R> {
 
     fn has_fvars(&self, e: ExprPtr<'a>) -> bool { self.dag.exprs.get_index(e.idx()).unwrap().has_fvars() }
 
-    fn get_name_ptr(&self, idx: u32) -> NamePtr<'a> {
+    fn get_name_ptr(&self, idx: u64) -> NamePtr<'a> {
         let out = crate::util::Ptr::from(DagMarker::ExportFile, idx as usize);
         assert!((idx as usize) < self.dag.names.len());
         out
     }
 
-    fn get_level_ptr(&self, idx: u32) -> LevelPtr<'a> {
+    fn get_level_ptr(&self, idx: u64) -> LevelPtr<'a> {
         let out = crate::util::Ptr::from(DagMarker::ExportFile, idx as usize);
         assert!((idx as usize) < self.dag.levels.len());
         out
     }
-    fn get_names(&self, idxs: &[u32]) -> Vec<NamePtr<'a>> {
+    fn get_names(&self, idxs: &[u64]) -> Vec<NamePtr<'a>> {
         let mut names = Vec::new();
         for idx in idxs.iter().copied() {
             assert!(self.dag.names.get_index(idx as usize).is_some());
@@ -497,7 +488,7 @@ impl<'a, R: BufRead> Parser<'a, R> {
         names
     }
 
-    fn get_uparams_ptr(&mut self, name_idxs: &[u32]) -> LevelsPtr<'a> {
+    fn get_uparams_ptr(&mut self, name_idxs: &[u64]) -> LevelsPtr<'a> {
         let mut levels = Vec::new();
         for name_idx in name_idxs.iter().copied() {
             let name_ptr = self.get_name_ptr(name_idx);
@@ -509,7 +500,7 @@ impl<'a, R: BufRead> Parser<'a, R> {
         LevelsPtr::from(DagMarker::ExportFile, self.dag.uparams.insert_full(Arc::from(levels)).0)
     }
 
-    fn get_levels_ptr(&mut self, idxs: &[u32]) -> LevelsPtr<'a> {
+    fn get_levels_ptr(&mut self, idxs: &[u64]) -> LevelsPtr<'a> {
         let mut levels = Vec::new();
         for idx in idxs.iter().copied() {
             levels.push(LevelPtr::from(DagMarker::ExportFile, idx as usize));
@@ -517,7 +508,7 @@ impl<'a, R: BufRead> Parser<'a, R> {
         LevelsPtr::from(DagMarker::ExportFile, self.dag.uparams.insert_full(Arc::from(levels)).0)
     }
 
-    fn get_expr_ptr(&self, idx: u32) -> ExprPtr<'a> {
+    fn get_expr_ptr(&self, idx: u64) -> ExprPtr<'a> {
         let out = crate::util::Ptr::from(DagMarker::ExportFile, idx as usize);
         assert!((idx as usize) < self.dag.exprs.len());
         out

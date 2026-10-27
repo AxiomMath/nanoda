@@ -36,30 +36,30 @@ pub(crate) type UniqueHashMap<K, V> = HashMap<K, V, BuildHasherDefault<UniqueHas
 
 /// An integer pointer to a kernel item, which can be in either the export file's
 /// persistent dag, or the type checking context's temporary dag. The integer pointer
-/// is currently 32 bits, which comfortably accommodates mathlib.
+/// is 64 bits, lifting the previous ~2 billion (2^31) items-per-dag ceiling.
 ///
-/// Bit 31 encodes the DagMarker (0 = ExportFile, 1 = TcCtx).
-/// Bits 0-30 hold the index into the appropriate dag.
+/// Bit 63 encodes the DagMarker (0 = ExportFile, 1 = TcCtx).
+/// Bits 0-62 hold the index into the appropriate dag.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ptr<A> {
-    raw: u32,
+    raw: u64,
     ph: PhantomData<A>,
 }
 
-/// Bit 31 set indicates TcCtx; cleared indicates ExportFile.
-const TC_BIT: u32 = 1 << 31;
-/// Mask for the 31-bit index stored in bits 0-30.
-const IDX_MASK: u32 = !TC_BIT;
+/// Bit 63 set indicates TcCtx; cleared indicates ExportFile.
+const TC_BIT: u64 = 1 << 63;
+/// Mask for the 63-bit index stored in bits 0-62.
+const IDX_MASK: u64 = !TC_BIT;
 
 impl<A> Ptr<A> {
     pub(crate) fn from(dag_marker: DagMarker, idx: usize) -> Self {
-        let idx_u32 = u32::try_from(idx).unwrap();
-        assert!(idx_u32 & TC_BIT == 0, "index {idx} exceeds 31-bit capacity");
+        let idx_u64 = u64::try_from(idx).unwrap();
+        assert!(idx_u64 & TC_BIT == 0, "index {idx} exceeds 63-bit capacity");
         let tag = match dag_marker {
             DagMarker::ExportFile => 0,
             DagMarker::TcCtx => TC_BIT,
         };
-        Self { raw: tag | idx_u32, ph: PhantomData }
+        Self { raw: tag | idx_u64, ph: PhantomData }
     }
 
     pub(crate) fn idx(&self) -> usize { (self.raw & IDX_MASK) as usize }
@@ -68,11 +68,11 @@ impl<A> Ptr<A> {
         if self.raw & TC_BIT == 0 { DagMarker::ExportFile } else { DagMarker::TcCtx }
     }
 
-    pub(crate) fn get_hash(&self) -> u64 { self.raw as u64 }
+    pub(crate) fn get_hash(&self) -> u64 { self.raw }
 }
 
 impl<A> std::hash::Hash for Ptr<A> {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) { state.write_u64(self.raw as u64) }
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) { state.write_u64(self.raw) }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -281,7 +281,7 @@ pub struct TcCtx<'t, 'p> {
     pub(crate) dbj_level_counter: u16,
     /// Monotonically increasing counter for unique free variables. Any two free variables created
     /// with the `mk_unique` constructor are unique within their `(ExportFile, TcCtx)` pair.
-    pub(crate) unique_counter: u32,
+    pub(crate) unique_counter: u64,
     /// A cache for instantiation, free variable abstraction, and level substitution
     pub(crate) expr_cache: ExprCache<'t>,
     pub(crate) eager_mode: bool
@@ -293,7 +293,7 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
             export_file,
             dag: tdag,
             dbj_level_counter: 0u16,
-            unique_counter: 0u32,
+            unique_counter: 0u64,
             expr_cache: ExprCache::new(),
             eager_mode: false
         }

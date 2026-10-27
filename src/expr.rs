@@ -107,7 +107,7 @@ pub enum Expr<'a> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FVarId {
     DbjLevel(u16),
-    Unique(u32),
+    Unique(u64),
 }
 
 impl<'a> Expr<'a> {
