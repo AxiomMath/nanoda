@@ -1,7 +1,14 @@
 name: release
+# Lives on the `release-ci` branch, kept separate from `axiom-cfsg-patches` (which holds only our
+# patches). Run manually; it builds the `axiom-cfsg-patches` code and uploads the platform binaries
+# to the given release tag.
 on:
-  release:
-    types: [created]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "release tag to upload to (must already exist)"
+        required: true
+        default: v0.4.26-offset-u64
 
 permissions:
   contents: write
@@ -25,6 +32,8 @@ jobs:
             asset: nanoda_bin-aarch64-darwin
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: axiom-cfsg-patches
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -35,4 +44,5 @@ jobs:
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag }}
           files: ${{ matrix.asset }}
