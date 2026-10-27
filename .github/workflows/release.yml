@@ -1,28 +1,38 @@
+name: release
 on:
   release:
     types: [created]
 
+permissions:
+  contents: write
+
 jobs:
-  release:
-    name: release ${{ matrix.target }}
-    runs-on: ubuntu-latest
+  build:
+    name: ${{ matrix.asset }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: x86_64-pc-windows-gnu
-            archive: zip
-          - target: x86_64-unknown-linux-musl
-            archive: tar.gz tar.xz tar.zst
-          - target: x86_64-apple-darwin
-            archive: zip
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            asset: nanoda_bin-x86_64-linux
+          - os: macos-13
+            target: x86_64-apple-darwin
+            asset: nanoda_bin-x86_64-darwin
+          - os: macos-14
+            target: aarch64-apple-darwin
+            asset: nanoda_bin-aarch64-darwin
     steps:
-      - uses: actions/checkout@master
-      - name: Compile and release
-        uses: rust-build/rust-build.action@v1.4.5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          RUSTTARGET: ${{ matrix.target }}
-          ARCHIVE_TYPES: ${{ matrix.archive }}
-          TOOLCHAIN_VERSION: stable
+          targets: ${{ matrix.target }}
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }} --bin nanoda_bin
+      - name: Stage asset
+        run: cp target/${{ matrix.target }}/release/nanoda_bin ${{ matrix.asset }}
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.asset }}
