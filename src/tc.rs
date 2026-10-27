@@ -472,6 +472,9 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
     /// whole structures first would also compare (and evaluate) the fields the
     /// projection discards.
     fn lazy_delta_proj_reduction(&mut self, x: ExprPtr<'t>, y: ExprPtr<'t>, idx: usize) -> bool {
+        crate::grow(|| self.lazy_delta_proj_reduction_grow(x, y, idx))
+    }
+    fn lazy_delta_proj_reduction_grow(&mut self, x: ExprPtr<'t>, y: ExprPtr<'t>, idx: usize) -> bool {
         match self.lazy_delta_step(x, y) {
             FoundEqResult(r) => r,
             Exhausted(x, y) => match (self.reduce_proj_core(idx, x), self.reduce_proj_core(idx, y)) {
@@ -537,6 +540,9 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
     }
 
     pub(crate) fn infer(&mut self, e: ExprPtr<'t>, flag: InferFlag) -> ExprPtr<'t> {
+        crate::grow(|| self.infer_grow(e, flag))
+    }
+    fn infer_grow(&mut self, e: ExprPtr<'t>, flag: InferFlag) -> ExprPtr<'t> {
         if let Some(cached) = self.tc_cache.infer_cache_check.get(&e).copied() {
             return cached
         }
@@ -584,6 +590,9 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
     }
 
     fn infer_app(&mut self, e: ExprPtr<'t>, flag: InferFlag) -> ExprPtr<'t> {
+        crate::grow(|| self.infer_app_grow(e, flag))
+    }
+    fn infer_app_grow(&mut self, e: ExprPtr<'t>, flag: InferFlag) -> ExprPtr<'t> {
         let (mut fun, mut args) = self.ctx.unfold_apps_stack(e);
         let mut ctx = Vec::new();
         fun = self.infer(fun, flag);
@@ -720,6 +729,9 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
     // Not well tested, used for introspection/debugging.
     #[allow(dead_code)]
     pub(crate) fn strong_reduce(&mut self, e: ExprPtr<'t>, reduce_types: bool, reduce_proofs: bool) -> ExprPtr<'t> {
+        crate::grow(|| self.strong_reduce_grow(e, reduce_types, reduce_proofs))
+    }
+    fn strong_reduce_grow(&mut self, e: ExprPtr<'t>, reduce_types: bool, reduce_proofs: bool) -> ExprPtr<'t> {
         if (!reduce_types) || (!reduce_proofs) {
             let ty = self.infer(e, InferOnly);
             if !reduce_types && matches!(self.ctx.read_expr(ty), Sort {..}) {
@@ -787,7 +799,8 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
         out
     }
 
-    pub fn whnf(&mut self, e: ExprPtr<'t>) -> ExprPtr<'t> {
+    pub fn whnf(&mut self, e: ExprPtr<'t>) -> ExprPtr<'t> { crate::grow(|| self.whnf_grow(e)) }
+    fn whnf_grow(&mut self, e: ExprPtr<'t>) -> ExprPtr<'t> {
         if matches!(self.ctx.read_expr(e), NatLit { .. } | StringLit { .. }) {
             return e
         }
@@ -813,6 +826,9 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
     pub fn whnf_no_unfolding(&mut self, e: ExprPtr<'t>) -> ExprPtr<'t> { self.whnf_no_unfolding_aux(e, false) }
 
     fn whnf_no_unfolding_aux(&mut self, e: ExprPtr<'t>, cheap_proj: bool) -> ExprPtr<'t> {
+        crate::grow(|| self.whnf_no_unfolding_aux_grow(e, cheap_proj))
+    }
+    fn whnf_no_unfolding_aux_grow(&mut self, e: ExprPtr<'t>, cheap_proj: bool) -> ExprPtr<'t> {
         if let Some(cached) = self.tc_cache.whnf_no_unfolding_cache.get(&e).copied() {
             return cached
         }
@@ -980,7 +996,8 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
 
     pub fn assert_def_eq(&mut self, u: ExprPtr<'t>, v: ExprPtr<'t>) { assert!(self.def_eq(u, v)) }
 
-    pub fn def_eq(&mut self, x: ExprPtr<'t>, y: ExprPtr<'t>) -> bool {
+    pub fn def_eq(&mut self, x: ExprPtr<'t>, y: ExprPtr<'t>) -> bool { crate::grow(|| self.def_eq_grow(x, y)) }
+    fn def_eq_grow(&mut self, x: ExprPtr<'t>, y: ExprPtr<'t>) -> bool {
         if let Some(easy) = self.def_eq_quick_check(x, y) {
             return easy
         }
@@ -1302,7 +1319,10 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
     ///
     /// After each reduction, check whether we can show definitional equality without having
     /// to continue unfolding.
-    fn lazy_delta_step(&mut self, mut x: ExprPtr<'t>, mut y: ExprPtr<'t>) -> DeltaResult<'t> {
+    fn lazy_delta_step(&mut self, x: ExprPtr<'t>, y: ExprPtr<'t>) -> DeltaResult<'t> {
+        crate::grow(|| self.lazy_delta_step_grow(x, y))
+    }
+    fn lazy_delta_step_grow(&mut self, mut x: ExprPtr<'t>, mut y: ExprPtr<'t>) -> DeltaResult<'t> {
         loop {
             if let Some(r) = self.delta_try_nat(x, y) {
                 return r
@@ -1351,7 +1371,8 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
         }
     }
 
-    pub fn may_be_prop(&mut self, e: ExprPtr<'t>) -> (bool, ExprPtr<'t>) {
+    pub fn may_be_prop(&mut self, e: ExprPtr<'t>) -> (bool, ExprPtr<'t>) { crate::grow(|| self.may_be_prop_grow(e)) }
+    fn may_be_prop_grow(&mut self, e: ExprPtr<'t>) -> (bool, ExprPtr<'t>) {
         let ty = self.infer_then_whnf(e, InferOnly);
         match self.ctx.read_expr(ty) {
             Sort { level, .. } => (self.ctx.may_be_prop(level), ty),
